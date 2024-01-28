@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rugpull</title>
+    <style>
+        .progress-label {
+            font-size: 16px;
+            text-align: center;
+            color: white;
+            text-wrap: nowrap;
+            z-index: 30;
+            padding-left: 4px;
+            padding-right: 4px;
+            text-shadow: 0px 0px 4px black;
+        }
+        
+        .progress-container {
+            height: 20px;
+            background-color: #eee;
+            border-radius: 4px;
+        }
+        
+        .progress {
+            position: relative;
+            height: 100%;
+            background-color: #4caf50;
+            width: 0;
+            /* Initialize width to 0 */
+            transition: width 0.0s ease-in-out;
+            /* Add a smooth transition for width change */
+            border-radius: 4px;
+        }
+        
+        .search-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .search-input {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            width: 50%;
+            /* Rounded left corners */
+            outline: none;
+        }
+        
+        .search-button {
+            padding: 10px;
+            background-color: #4caf50;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            /* Rounded right corners */
+            cursor: pointer;
+            transition: background-color 0.25s ease-in-out;
+        }
+        
+        .search-button i {
+            color: white;
+            /* Set the color of the icon */
+            font-size: 20px;
+            /* Adjust the size as needed */
+        }
+        
+        .search-button:hover {
+            background-color: navy;
+        }
+        
+        .search-button:active {
+            background-color: blue;
+        }
+        
+        .search-icon {
+            font-size: 16px;
+        }
+        
+        .progress-label {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        
+        #result {
+            height: 484px;
+            position: relative;
+            bottom: 10px;
+        }
+        
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border: 4px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        
+        .result-score {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .result-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .result-text {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        
+        #canvas-label {
+            font-size: 16px;
+            text-align: center;
+            color: black;
+            text-wrap: nowrap;
+            z-index: 30;
+            position: relative;
+            bottom: 2px;
+            box-sizing: border-box;
+            margin-right: 4px;
+        }
+        
+        #canvas-container {
+            display: flex;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        
+        #graph {
+            display: flex;
+        }
+        
+        input[type="file"] {
+            /* Add your styles here to make the button pretty */
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        #fileInput {
+            padding: 10px;
+            margin-right: 10px;
+            /* Space between elements */
+        }
+        
+        #saveFileName {
+            padding: 10px;
+            margin-right: 10px;
+            /* Space between elements */
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        #saveFileButton,
+        #loadFileButton {
+            padding: 10px;
+            background-color: #4caf50;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.25s ease-in-out;
+            margin-right: 10px;
+            /* Space between elements */
+            color: white;
+            /* Text color */
+        }
+        
+        #loadFileDropdown {
+            padding: 10px;
+            margin-right: 10px;
+            /* Space between elements */
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            /* Dropdown background */
+            color: black;
+            /* Dropdown text color */
+        }
+        
+        #saveFileButton:hover,
+        #loadFileButton:hover {
+            background-color: navy;
+        }
+        
+        #saveFileButton:active,
+        #loadFileButton:active {
+            background-color: blue;
+        }
+        
+        #answer-area {
+            margin: 10px 0;
+            padding: 10px;
+            border: 4px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+</head>
+
+<body>
+    <input type="file" id="fileInput" accept=".txt, .pdf" />
+
+    <!-- Save File Button and Text Box -->
+    <input id="savefileTxt" type="text" placeholder="example">
+    <button id="saveFileButton">Save File</button>
+
+    <!-- Load File Button and Dropdown -->
+    <input id="loadfileTxt" type="text" placeholder="example">
+    <button id="loadFileButton">Load File</button>
+
+
+    <div class="progress-container">
+        <div class="progress">
+            <strong><div id="progress-label" class="progress-label">Progress (0/0):</div></strong>
+        </div>
+    </div>
+
+    <div class="search-container">
+        <input type="text" placeholder="Search..." class="search-input" id="search-input">
+        <button id="search-button" class="search-button">
+            <i>🔎</i> 
+        </button>
+    </div>
+    <div id="answer-area" style="display: none;">
+    </div>
+    <!--<div id="canvas-container" style="display:none">
+        <span id="canvas-label">Frequency Graph: </span>
+    </div>-->
+    <div id="graph" style="display:none">
+        <div id="graphCanvas"></div>
+        <div id="result" style="display:inline-block;height: 100%;width:100%;flex-grow:1;height:484px;">
+            <div class="result" style="height:100%;flex-grow:1;">
+                <h3 class="result-title">Click over a point to see the sentence</h3>
+                <div class="result-text">No sentence selected.</div>
+
+            </div>
+        </div>
+    </div>
+    <div id="results"></div>
+    <script src="umap.js"></script>
+    <script src="main.js" type="module"></script>
+
+</body>
+
+</html>

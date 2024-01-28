@@ -1,0 +1,7 @@
+Flask
+flask-cors
+sentence-transformers
+transformers
+torch
+numpy
+umap-learn
