@@ -20,8 +20,6 @@ Preferably in a virtual environment.
 
 Then, just `python main.py` and navigate to `localhost:3000` in your browser - you can interact with RUGPULL from there.
 
-
-
 ## How do I use RUGPULL?
 RUGPULL includes a variety of tools for you to specifically search through documents yourself - it embeds sentence fragments into a vector space, and then allows you to search for similar sentences to the fragments you provide on an interactive map,
 where individual contexts are represented as points - colored with respect to their relevance to your query.
@@ -29,6 +27,10 @@ where individual contexts are represented as points - colored with respect to th
 You can also just see the results of a simple cosine similarity search, which will return the most similar contexts to your query. You can also press the search button, provided you have LM Studio open and running its local server, which will then call whatever LLM you have loaded in LM Studio to generate a proper response to your query that cites the most relevant contexts. Good LLMs for this task include openhermes-2.5, dolphin-2.7-mixtral (if your computer has the RAM), or really any modern mistral-based instruction tuned model.
 
 Rugpull *requires no internet* to run (except when downloading models), and is entirely local. It is also entirely open source, and you can see exactly what it is doing at any time.
+
+Demo video:
+https://github.com/N8python/rugpull/assets/43304488/56373c9c-354d-401c-834e-7dd7bae9bffe
+
 
 
 ## Hardware requirements
