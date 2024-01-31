@@ -40,6 +40,16 @@ def post():
     bytes_data = encoded.tobytes()
     return Response(bytes_data, mimetype='application/octet-stream')
 
+@app.route('/list-files', methods=['POST'])
+@cross_origin()
+def list_post_files():
+    path = request.json['path']
+    files = os.listdir(path)
+    # Get rid of .DS_Store
+    files = [f for f in files if not f.startswith('.')]
+    return jsonify(files)
+
+
 @app.route('/post-umap', methods=['POST'])
 @cross_origin()
 def post_umap():

@@ -164,8 +164,7 @@
             border-radius: 4px;
         }
         
-        #saveFileButton,
-        #loadFileButton {
+        .guiButton {
             padding: 10px;
             background-color: #4caf50;
             border: none;
@@ -191,13 +190,17 @@
             /* Dropdown text color */
         }
         
-        #saveFileButton:hover,
-        #loadFileButton:hover {
+        .guiButton:hover {
             background-color: navy;
         }
         
-        #saveFileButton:active,
-        #loadFileButton:active {
+        .guiButton:disabled {
+            background-color: #ddd;
+            color: #aaa;
+            cursor: not-allowed;
+        }
+        
+        .guiButton:not(:disabled):active {
             background-color: blue;
         }
         
@@ -218,11 +221,14 @@
 
     <!-- Save File Button and Text Box -->
     <input id="savefileTxt" type="text" placeholder="example">
-    <button id="saveFileButton">Save File</button>
+    <button class="guiButton" id="saveFileButton">Save File</button>
 
     <!-- Load File Button and Dropdown -->
-    <input id="loadfileTxt" type="text" placeholder="example">
-    <button id="loadFileButton">Load File</button>
+    <!--<input id="loadfileTxt" type="text" placeholder="example">-->
+    <select id="loadfileTxt">
+        <option value="example"></option>
+    </select>
+    <button class="guiButton" id="loadFileButton" disabled>Load File</button>
 
 
     <div class="progress-container">

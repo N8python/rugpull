@@ -355,8 +355,8 @@ document.getElementById("search-input").addEventListener('input', async() => {
     let searchQuery = searchTextInput.value;
     let negativeQuery = "";
     if (searchQuery.includes("--no")) {
-        negativeQuery = searchQuery.split("--no")[1];
-        searchQuery = searchQuery.split("--no")[0];
+        negativeQuery = searchQuery.split("--no")[1].trim();
+        searchQuery = searchQuery.split("--no")[0].trim();
     }
     const url = 'http://localhost:3000/post';
     const result = await fetch(url, {
@@ -425,7 +425,7 @@ document.getElementById("search-input").addEventListener('input', async() => {
         result.innerHTML = `
     <div class="result" id="context${topKCtr}">
       <h3 class="result-title">#${topKCtr}. Sentences ${sentenceRanges[index][0]}-${sentenceRanges[index][1]}</h3>
-      <h3 class="result-score">Cosine Similarity: ${score.toFixed(2)}</h3>
+      <h3 class="result-score">Similarity: ${score.toFixed(2)}</h3>
      <div class="result-text">${contexts[index]}</div>
     </div>
    `;
@@ -547,7 +547,7 @@ function updateId(evt) {
         result.innerHTML = `
     <div class="result" style="height:100%;flex-grow:1;">
       <h3 class="result-title">Sentences ${sentenceRanges[id][0]}-${sentenceRanges[id][1]}</h3>
-      <h3 class="result-score">Cosine Similarity: ${score.toFixed(2)}</h3>
+      <h3 class="result-score">Similarity: ${score.toFixed(2)}</h3>
      <div class="result-text">${contexts[id]}</div>
     </div>
    `;
@@ -645,6 +645,27 @@ function clear() {
     document.getElementById("results").innerHTML = "";
     document.getElementById("answer-area").style.display = "none";
 }
+async function loadFileOptions() {
+    const options = await (await fetch('http://localhost:3000/list-files', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ path: "cache" })
+
+    })).json();
+    const select = document.getElementById("loadfileTxt");
+    select.innerHTML = "";
+    for (const option of options) {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.innerHTML = option;
+        select.appendChild(opt);
+    }
+    document.getElementById("loadFileButton").disabled = false;
+
+}
+loadFileOptions();
 async function main(options) {
     doUpdate = false;
     clear();
