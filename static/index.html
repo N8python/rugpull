@@ -243,7 +243,9 @@
         <span id="canvas-label">Frequency Graph: </span>
     </div>-->
     <div id="graph" style="display:none">
-        <div id="graphCanvas"></div>
+        <div id="graphCanvas" style="position:relative;">
+            <input type="range" id="pointSize" value="0.5" min="0" max="1" step="0.001" style="position:absolute;top:0px;left:5%;width:90%;height:20px;">
+        </div>
         <div id="result" style="display:inline-block;height: 100%;width:100%;flex-grow:1;height:484px;">
             <div class="result" style="height:100%;flex-grow:1;">
                 <h3 class="result-title">Click over a point to see the sentence</h3>

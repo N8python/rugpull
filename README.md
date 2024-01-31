@@ -1,5 +1,8 @@
 # RUGPULL
 
+Demo video:
+https://github.com/N8python/rugpull/assets/43304488/56373c9c-354d-401c-834e-7dd7bae9bffe
+
 ## What is RUGPULL?
 
 RUGPULL is a simple python script paired with a Javascript GUI that lets you perform RAG on a single document. It is in very early stages of development - features coming later will be the ability to perform RAG on multiple documents at once, better visualization/UI, and more customization. 
@@ -28,8 +31,7 @@ You can also just see the results of a simple cosine similarity search, which wi
 
 Rugpull *requires no internet* to run (except when downloading models), and is entirely local. It is also entirely open source, and you can see exactly what it is doing at any time.
 
-Demo video:
-https://github.com/N8python/rugpull/assets/43304488/56373c9c-354d-401c-834e-7dd7bae9bffe
+
 
 
 

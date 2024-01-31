@@ -229,12 +229,14 @@ const material =
     new THREE.ShaderMaterial({
         uniforms: {
             selectedId: { value: -1 },
-            zoom: { value: camera.zoom }
+            zoom: { value: camera.zoom },
+            size: { value: 40.0 }
         },
         vertexShader: `
             attribute float intensity;
             attribute float id;
             uniform float selectedId;
+            uniform float size;
             uniform float zoom;
             varying float vIntensity;
             varying float vId;
@@ -242,7 +244,7 @@ const material =
                 vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
                 mvPosition.z += (selectedId == id ? 1.0 : intensity) * 0.1;
                 gl_Position = projectionMatrix * mvPosition;
-                gl_PointSize = 40.0 * zoom;
+                gl_PointSize = size * zoom;
                 vIntensity = intensity;
                 vId = id;
                 }
@@ -350,7 +352,12 @@ document.getElementById("saveFileButton").addEventListener('click', () => {
 document.getElementById("search-input").addEventListener('input', async() => {
     const start = performance.now();
     const searchTextInput = document.getElementById("search-input");
-    const searchQuery = searchTextInput.value;
+    let searchQuery = searchTextInput.value;
+    let negativeQuery = "";
+    if (searchQuery.includes("--no")) {
+        negativeQuery = searchQuery.split("--no")[1];
+        searchQuery = searchQuery.split("--no")[0];
+    }
     const url = 'http://localhost:3000/post';
     const result = await fetch(url, {
         method: 'POST', // or 'PUT'
@@ -359,10 +366,11 @@ document.getElementById("search-input").addEventListener('input', async() => {
             noCors: true
         },
 
-        body: JSON.stringify([searchQuery]), // Convert JavaScript object to a JSON string
-    })
+        body: JSON.stringify([searchQuery, negativeQuery]), // Convert JavaScript object to a JSON string
+    });
     const buf = await result.arrayBuffer();
-    const embedding_query = new Float32Array(buf);
+    const embedding_query = new Float32Array(buf.slice(0, EMBEDDING_SIZE * 4));
+    const embedding_query_neg = new Float32Array(buf.slice(EMBEDDING_SIZE * 4, EMBEDDING_SIZE * 8));
     query.set(embedding_query);
     const similarityScores = new Float32Array(contexts.length);
     console.time("GPU Similarity Score Search");
@@ -379,17 +387,30 @@ document.getElementById("search-input").addEventListener('input', async() => {
     const r = new Float32Array(embeddingsTexSize * embeddingsTexSize);
     rendererGraph.readRenderTargetPixels(embeddingsRenderTarget, 0, 0, embeddingsTexSize, embeddingsTexSize, r);
     const similarityScoresGPU = r.slice(0, contexts.length);
-    /* console.log(similarityScores.slice);
-      console.log(r);*/
-    /* console.log(similarityScoresGPU.slice(0, 3), similarityScores.slice(0, 3));
-     let e = 0;
-     for (let i = 0; i < similarityScores.length; i++) {
-         e += Math.abs(similarityScores[i] - similarityScoresGPU[i]);
-     }
-     e /= similarityScores.length;
-     console.log(e);*/
     similarityScores.set(similarityScoresGPU);
     rendererGraph.setRenderTarget(null);
+
+    if (negativeQuery !== "") {
+        query.set(embedding_query_neg);
+        rendererGraph.setRenderTarget(embeddingsRenderTarget);
+        for (let i = 0; i < EMBEDDING_SIZE / 4; i++) {
+            embeddingUniformArray[i].value.set(
+                embedding_query_neg[i * 4 + 0],
+                embedding_query_neg[i * 4 + 1],
+                embedding_query_neg[i * 4 + 2],
+                embedding_query_neg[i * 4 + 3]
+            );
+        }
+        embeddingsQuad.render(rendererGraph);
+        const r = new Float32Array(embeddingsTexSize * embeddingsTexSize);
+        rendererGraph.readRenderTargetPixels(embeddingsRenderTarget, 0, 0, embeddingsTexSize, embeddingsTexSize, r);
+        const similarityScoresGPUNeg = r.slice(0, contexts.length);
+        for (let i = 0; i < similarityScores.length; i++) {
+            similarityScores[i] -= similarityScoresGPUNeg[i];
+        }
+        rendererGraph.setRenderTarget(null);
+    }
+
     console.timeEnd("GPU Similarity Score Search");
     const topK = Object.entries(simpleTopK(similarityScores, 5)).sort((a, b) => b[1] - a[1]);
     // console.log(topK);
@@ -435,11 +456,13 @@ document.getElementById("search-input").addEventListener('input', async() => {
 const idMaterial = new THREE.ShaderMaterial({
     uniforms: {
         selectedId: { value: -1 },
-        zoom: { value: camera.zoom }
+        zoom: { value: camera.zoom },
+        size: { value: 40.0 }
     },
     vertexShader: `
 attribute float intensity;
 attribute float id;
+uniform float size;
 uniform float zoom;
 varying float vIntensity;
 varying float vId;
@@ -447,7 +470,7 @@ void main() {
     vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
     mvPosition.z += intensity * 0.1;
     gl_Position = projectionMatrix * mvPosition;
-    gl_PointSize = 40.0 * zoom;
+    gl_PointSize = size * zoom;
     vIntensity = intensity;
     vId = id;
     }
@@ -602,6 +625,9 @@ function animate() {
     requestAnimationFrame(animate);
     material.uniforms.zoom.value = camera.zoom;
     idMaterial.uniforms.zoom.value = camera.zoom;
+    const slideScale = document.getElementById("pointSize").value;
+    material.uniforms.size.value = 40.0 * slideScale;
+    idMaterial.uniforms.size.value = 40.0 * slideScale;
     rendererGraph.render(scene, camera);
 }
 
