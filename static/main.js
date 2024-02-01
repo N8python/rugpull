@@ -349,6 +349,17 @@ document.getElementById("saveFileButton").addEventListener('click', () => {
 
     filePath = savefilePath;
 });
+
+function submitVector(vec) {
+    for (let i = 0; i < EMBEDDING_SIZE / 4; i++) {
+        embeddingUniformArray[i].value.set(
+            vec[i * 4 + 0],
+            vec[i * 4 + 1],
+            vec[i * 4 + 2],
+            vec[i * 4 + 3]
+        );
+    }
+}
 document.getElementById("search-input").addEventListener('input', async() => {
     const start = performance.now();
     const searchTextInput = document.getElementById("search-input");
@@ -375,14 +386,7 @@ document.getElementById("search-input").addEventListener('input', async() => {
     const similarityScores = new Float32Array(contexts.length);
     console.time("GPU Similarity Score Search");
     rendererGraph.setRenderTarget(embeddingsRenderTarget);
-    for (let i = 0; i < EMBEDDING_SIZE / 4; i++) {
-        embeddingUniformArray[i].value.set(
-            embedding_query[i * 4 + 0],
-            embedding_query[i * 4 + 1],
-            embedding_query[i * 4 + 2],
-            embedding_query[i * 4 + 3]
-        );
-    }
+    submitVector(embedding_query);
     embeddingsQuad.render(rendererGraph);
     const r = new Float32Array(embeddingsTexSize * embeddingsTexSize);
     rendererGraph.readRenderTargetPixels(embeddingsRenderTarget, 0, 0, embeddingsTexSize, embeddingsTexSize, r);
@@ -393,14 +397,7 @@ document.getElementById("search-input").addEventListener('input', async() => {
     if (negativeQuery !== "") {
         query.set(embedding_query_neg);
         rendererGraph.setRenderTarget(embeddingsRenderTarget);
-        for (let i = 0; i < EMBEDDING_SIZE / 4; i++) {
-            embeddingUniformArray[i].value.set(
-                embedding_query_neg[i * 4 + 0],
-                embedding_query_neg[i * 4 + 1],
-                embedding_query_neg[i * 4 + 2],
-                embedding_query_neg[i * 4 + 3]
-            );
-        }
+        submitVector(embedding_query_neg);
         embeddingsQuad.render(rendererGraph);
         const r = new Float32Array(embeddingsTexSize * embeddingsTexSize);
         rendererGraph.readRenderTargetPixels(embeddingsRenderTarget, 0, 0, embeddingsTexSize, embeddingsTexSize, r);
@@ -543,7 +540,7 @@ function updateId(evt) {
     material.uniforms.selectedId.value = id;
     if (id > -1) {
         const result = document.getElementById("result");
-        const score = timelineArrUnnormalized[id]; //cosineSimilarity2(embedding_f32.slice(id * EMBEDDING_SIZE, (id + 1) * EMBEDDING_SIZE), query);
+        const score = timelineArrUnnormalized[id];
         result.innerHTML = `
     <div class="result" style="height:100%;flex-grow:1;">
       <h3 class="result-title">Sentences ${sentenceRanges[id][0]}-${sentenceRanges[id][1]}</h3>
@@ -581,36 +578,76 @@ document.getElementById("search-button").addEventListener('click', async() => {
     const answerArea = document.getElementById("answer-area");
     answerArea.style.display = "block";
     answerArea.innerText = "Answering...";
-    const systemPrompt = "You are an intelligent AI that takes in a query and relevant contexts - which are numbered 1 to 5 in order of estimated relevance. Given the context and the query, answer the question. When referring to information from a context, indicate which context you are referring to with a parenthetical citation - ie. if you were referring to context 2, you'd put ($C2) at the end of the sentence. Always answer the question directly.";
+    const systemPrompt = "You are an intelligent AI that takes in a query and relevant contexts. Given the context and the query, answer the question. Contexts won't always have the info you need - you should also rely on your pre-existing knowledge base. Cite contexts parenthetically - for context 2, put (C:2) at the end of the sentence. Cite your external knowledge base (C:OI), for outside information.";
     const searchTextInput = document.getElementById("search-input");
-    const searchQuery = searchTextInput.value;
+    const searchQuery = searchTextInput.value.split("--no")[0].trim();
     const relevantContexts = topKcontexts.map((x, i) => `${i + 1} (Sentences ${sentenceRanges[x.index][0]}-${sentenceRanges[x.index][1]}). ${contexts[x.index]}`).join("\n");
-    const c = await (await fetch('http://localhost:1234/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            messages: [
-                { role: 'system', content: systemPrompt },
-                {
-                    role: 'user',
-                    content: `Query: ${searchQuery}
+    const userQuery = `Query: ${searchQuery}
 
 Relevant Contexts:
 ${relevantContexts}
-                
-Answer (MAKE SURE to CITE SOURCES with the string '($CN)' where N is the context number as a PARENTHETICAL CITATION after the RELEVANT INFORMATION. Cite a VARIETY of sources in your answer. Answer the question DIRECTLY and BE SPECIFIC.):`
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: -1,
-            stream: false
+                    
+Answer (MAKE SURE to CITE SOURCES with the string '(C:N)' where N is the context number as a PARENTHETICAL CITATION after the RELEVANT INFORMATION. If there are NO RELEVANT SOURCES cite OUTSIDE INFORMATION with '(C:OI)' - use this ONLY IF NECESSARY and if you are VERY CONFIDENT in YOUR KNOWLEDGE. Cite MULTIPLE relevant sources with '(C:N,C:M)'. Cite a VARIETY of sources in your answer. Answer the question DIRECTLY and BE SPECIFIC.):`
+    let accumulator = "";
+    fetch('http://localhost:1234/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    {
+                        role: 'user',
+                        content: userQuery
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: -1,
+                stream: true
+            })
+        }).then(response => {
+            const reader = response.body.getReader();
+
+            // Function to recursively read each chunk
+            function read() {
+                reader.read().then(({ done, value }) => {
+                    if (done) {
+                        console.log('Stream finished.');
+                        return;
+                    }
+                    // Log each chunk as it comes
+                    const raw = new TextDecoder().decode(value);
+                    // Extract the JSON object {.+}
+                    const match = raw.match(/\{.+\}/);
+                    if (match) {
+                        const c = JSON.parse(match[0]);
+
+                        const answer = c.choices[0].delta.content;
+                        if (c.choices[0].delta.role === "assistant") {
+                            accumulator += answer;
+                            let toDisplay = accumulator;
+                            // Replace each instance of (C:X) with <a href="#contextx">x</a>
+                            toDisplay = toDisplay.replace(/C:(\d)/g, '<a href="#context$1">$1</a>');
+                            toDisplay = toDisplay.replace(/C:OI/g, '<a href="https://huggingface.co/mlabonne/NeuralBeagle14-7B">OI</a>');
+                            answerArea.innerHTML = toDisplay;
+                        }
+
+
+                    }
+                    // Read the next chunk
+                    read();
+                });
+            }
+
+            // Start reading the stream
+            read();
         })
-    })).json();
-    const answer = c.choices[0].message.content;
-    // Replace each instance of context X with <a href="#contextx">x</a>
-    answerArea.innerHTML = answer.replace(/[Cc]ontext (\d)/g, '<a href="#context$1">$1</a>').replace(/\$C(\d)/g, '<a href="#context$1">$1</a>');
+        /*console.log(c)
+                /*const answer = c.choices[0].message.content;
+                // Replace each instance of context X with <a href="#contextx">x</a>
+                answerArea.innerHTML = answer.replace(/C:(\d)/g, '<a href="#context$1">$1</a>');*/
+
 
 });
 let doUpdate = false;
